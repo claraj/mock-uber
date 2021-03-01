@@ -65,11 +65,15 @@ app = Flask(__name__)
 @app.route('/v1.2/estimates/price')
 def price_estimate():
 
-    print(request.args)
-    start_lat = request.args.get('start_latitude', '')
-    start_lon = request.args.get('start_longitude', '')
-    end_lat = request.args.get('end_latitude', '')
-    end_long = request.args.get('end_longitude', '')
+    try:
+        start_lat = float(request.args.get('start_latitude', ''))
+        start_lon = float(request.args.get('start_longitude', ''))
+        end_lat = float(request.args.get('end_latitude', ''))
+        end_long = float(request.args.get('end_longitude', ''))
+    except ValueError:
+        abort(401, 'Bad request - latitude and longitude must be numbers')
+
+    # TODO verify lat and long values are sensible numbers so longitudes -180 -> +180, latitudes -90 -> +90
 
     if start_lat and start_lon and end_lat and end_long:
         # create mock response 
@@ -82,15 +86,13 @@ def price_estimate():
 def mock_estimates(start_lat, start_long, end_lat, end_long):
     # about how far apart are the coordinates? 
 
-    start_long = float(start_long)
-    start_lat = float(start_lat)
-    end_long = float(end_long)
-    end_lat = float(end_lat)
+
 
     lat_diff = abs(start_lat - end_lat)
     long_diff = abs(start_long - end_long)
     # pythagoras! This isn't the actual distance because the world isn't flat and lat-long is not a regular grid.  
     distance_lat_long = math.sqrt( lat_diff**2 + long_diff**2 )
+
     # one degree differece of latitude is about 70 miles 
     # one degree difference in longitude, varies where you are in the world. Going with 70 to keep things simple or would need to do more math
 
@@ -100,7 +102,7 @@ def mock_estimates(start_lat, start_long, end_lat, end_long):
     uberxl_price_per_mile = 3.50  # same 
     time_per_mile = 300   # seems to be seconds in the response, I'm making this up too
 
-    low_price = math.floor(distance * pool_price_per_mile * 0.8)  # round down
+    low_price = math.floor(distance * pool_price_per_mile * 0.8)   # round down
     high_price = math.ceil(distance * pool_price_per_mile * 1.2)   # round up
 
     duration = math.floor(distance * time_per_mile)
@@ -125,7 +127,8 @@ def mock_estimates(start_lat, start_long, end_lat, end_long):
 
     return [
         pool_price_json,
-        uberxl_price_json
+        uberxl_price_json,
+        # todo other products
     ]
 
     # suggestion - tweak estimate based on time of day, whatever else you might think Uber might use to adjust pricing 
